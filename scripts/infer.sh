@@ -1,0 +1,1 @@
+python main.py --mode test --model EleutherAI/gpt-neo-125m --data ConvAI2

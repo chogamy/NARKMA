@@ -1,5 +1,6 @@
 import argparse
 
+
 from lightning import seed_everything
 
 from srcs.getter import get_args, get_model, get_datamodule, get_trainer
@@ -11,8 +12,23 @@ if __name__ == "__main__":
         "--mode", required=True, default=None, type=str, choices=["fit", "test"]
     )
     parser.add_argument("--model", required=True, default=None, type=str)
+    parser.add_argument(
+        "--architecture",
+        required=True,
+        default=None,
+        type=str,
+        choices=[
+            "Enc1NARDec2_norm_dict",
+            "Enc1NARDec2_norm",
+            "Enc1NARDec2_dict",
+            "Enc1NARDec2",
+            "Enc1ARDec1",
+        ],
+    )
     parser.add_argument("--trainer_args", default="args/trainer/basic.yaml", type=str)
-    parser.add_argument("--data", required=True, default=None, type=str)
+    parser.add_argument(
+        "--data", required=True, default=None, type=str, choices=["sejong"]
+    )
     args = parser.parse_args()
 
     seed_everything(42, workers=True)

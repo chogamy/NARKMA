@@ -14,11 +14,11 @@ class BaseTokenizer:
         self.mask_token = "<mask>"
         self.unk_token = "<unk>"
 
-        self.bos_token_id = self.vocab[self.bos_token]
-        self.eos_token_id = self.vocab[self.eos_token]
-        self.pad_token_id = self.vocab[self.pad_token]
-        self.mask_token_id = self.vocab[self.mask_token]
-        self.unk_token_id = self.vocab[self.unk_token]
+        self.bos_token_id = self.reverse_vocab[self.bos_token]
+        self.eos_token_id = self.reverse_vocab[self.eos_token]
+        self.pad_token_id = self.reverse_vocab[self.pad_token]
+        self.mask_token_id = self.reverse_vocab[self.mask_token]
+        self.unk_token_id = self.reverse_vocab[self.unk_token]
 
         self.special_tokens = {
             self.bos_token: self.bos_token_id,

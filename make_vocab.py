@@ -7,6 +7,7 @@ from srcs.data.load import LOAD
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
+    parser.add_argument("--model", required=True, default=None, type=str)
     parser.add_argument(
         "--architecture",
         required=True,
@@ -41,6 +42,7 @@ if __name__ == "__main__":
         )
     )
     src.sort()
+
     morph = list(
         set(
             "".join([item for sub in dataset["train"]["morph"] for item in sub])
@@ -49,6 +51,7 @@ if __name__ == "__main__":
         )
     )
     morph.sort()
+
     tag = list(
         set(
             [item for sub in dataset["train"]["tag"] for item in sub]
@@ -66,6 +69,16 @@ if __name__ == "__main__":
     with open(os.path.join(dir, "src.txt"), encoding="utf-8", mode="w") as f:
         for token in special_tokens + src:
             f.write(f"{token}\n")
+
+    with open(os.path.join(dir, "tgt.txt"), encoding="utf-8", mode="w") as f:
+        for token in special_tokens + tag:
+            if token in special_tokens + [" ", "+"]:
+                f.write(f"{token}\n")
+            else:
+                f.write(f"/{token}\n")
+        for token in morph:
+            if token not in [" ", "+"]:
+                f.write(f"{token}\n")
 
     with open(os.path.join(dir, "morph.txt"), encoding="utf-8", mode="w") as f:
         for token in special_tokens + morph:

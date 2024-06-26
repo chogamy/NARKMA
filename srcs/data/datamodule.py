@@ -9,6 +9,8 @@ from torch.utils.data import DataLoader
 from .preprocess import PREPROCESS
 from .load import LOAD
 
+KEYS = []
+
 
 @dataclass
 class Collator:
@@ -22,84 +24,53 @@ class Collator:
 
 
 class DataModule(L.LightningDataModule):
-    def __init__(self, args, tokenizer) -> None:
+    def __init__(self, args, tokenizers) -> None:
         super().__init__()
 
         self.args = args
-        self.tokenizer = tokenizer
-        self.prompt = "task1: predict the length of a target \ntask2: predict a target for the length"
+        self.tokenizers = tokenizers
 
     def setup(self, stage) -> None:
-        dir = os.path.join(os.getcwd(), "data", self.args.data, "cache")
-        remove_columns = []
+        dir = os.path.join(
+            os.getcwd(), "data", self.args.data, self.args.architecture, "cache"
+        )
+        remove_columns = ["src", "morph_tgt", "tag_tgt"]
+
+        def load_and_preprocess_data(split_name, remove_columns, tokenizers):
+            if os.path.exists(os.path.join(dir, split_name)):
+                dataset = load_from_disk(os.path.join(dir, split_name))
+            else:
+                os.makedirs(os.path.join(dir, split_name), exist_ok=True)
+                dataset = LOAD[self.args.data](split_name)
+
+                dataset = dataset.map(
+                    PREPROCESS[self.args.data],
+                    remove_columns=remove_columns,
+                    fn_kwargs={
+                        "tokenizers": tokenizers,
+                    },
+                    load_from_cache_file=True,
+                    keep_in_memory=True,
+                    desc="Pre-processing",
+                    batched=True,
+                )
+
+                dataset.save_to_disk(os.path.join(dir, split_name))
+
+            return dataset
+
         if stage == "fit":
-
-            # train set
-            if os.path.exists(os.path.join(dir, "train")):
-                self.train = load_from_disk(os.path.join(dir, "train"))
-            else:
-                os.makedirs(os.path.join(dir, "train"), exist_ok=True)
-                self.train = LOAD[self.args.data]("train")
-
-                self.train = self.train.map(
-                    PREPROCESS[self.args.data],
-                    remove_columns=remove_columns,
-                    fn_kwargs={
-                        "tokenizer": self.tokenizer,
-                        "prompt": self.prompt,
-                        "split": "train",
-                    },
-                    load_from_cache_file=True,
-                    keep_in_memory=True,
-                    desc="Pre-processing",
-                    batched=True,
-                )
-
-                self.train.save_to_disk(os.path.join(dir, "train"))
-
-            # valid set
-            if os.path.exists(os.path.join(dir, "valid")):
-                self.valid = load_from_disk(os.path.join(dir, "valid"))
-            else:
-                os.makedirs(os.path.join(dir, "valid"), exist_ok=True)
-                self.valid = LOAD[self.args.data]("validation")
-
-                self.valid = self.valid.map(
-                    PREPROCESS[self.args.data],
-                    remove_columns=remove_columns,
-                    fn_kwargs={
-                        "tokenizer": self.tokenizer,
-                        "prompt": self.prompt,
-                        "split": "valid",
-                    },
-                    load_from_cache_file=True,
-                    keep_in_memory=True,
-                    desc="Pre-processing",
-                    batched=True,
-                )
-
-                self.valid.save_to_disk(os.path.join(dir, "valid"))
+            self.train = load_and_preprocess_data(
+                "train", remove_columns, self.tokenizers
+            )
+            self.valid = load_and_preprocess_data(
+                "valid", remove_columns, self.tokenizers
+            )
 
         if stage == "test":
-            if os.path.exists(os.path.join(dir, "test")):
-                self.test = load_from_disk(os.path.join(dir, "test"))
-            else:
-                os.makedirs(os.path.join(dir, "test"), exist_ok=True)
-                self.test = LOAD[self.args.data]("test")
-
-                self.test = self.test.map(
-                    PREPROCESS[self.args.data],
-                    remove_columns=remove_columns,
-                    fn_kwargs={
-                        "tokenizer": self.tokenizer,
-                        "prompt": self.prompt,
-                        "split": "test",
-                    },
-                    load_from_cache_file=True,
-                    keep_in_memory=True,
-                    desc="Pre-processing",
-                    batched=True,
-                )
+            self.test = load_and_preprocess_data(
+                "test", remove_columns, self.tokenizers
+            )
 
     def train_dataloader(self):
         return DataLoader(

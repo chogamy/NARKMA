@@ -3,25 +3,108 @@ from torch import nn
 from torch import optim
 from torch.nn import functional as F
 import lightning as L
+from transformers import BertModel, BertConfig
 
 
-class NNWrapper(nn.Module):
-    def __init__(self, model):
+class Enc1NARDec2(nn.Module):
+    def __init__(self, tokenizers):
         super().__init__()
 
-        self.encoder = model.encoder
-        self.decoder = model.decoder
+        self.tokenizers = tokenizers
 
-        # ETC.......
+        encoder_config = BertConfig(
+            vocab_size=tokenizers["src"].vocab_size,
+            num_hidden_layers=6,
+            hidden_size=512,
+            num_attention_heads=8,
+            intermediate_size=2048,
+            is_decoder=False,
+        )
+
+        decoder_config0 = BertConfig(
+            vocab_size=tokenizers["morph"].vocab_size,
+            num_hidden_layers=1,
+            hidden_size=512,
+            num_attention_heads=8,
+            intermediate_size=2048,
+            is_decoder=True,
+            add_cross_attention=True,
+        )
+
+        decoder_config1 = BertConfig(
+            vocab_size=tokenizers["tag"].vocab_size,
+            num_hidden_layers=1,
+            hidden_size=512,
+            num_attention_heads=8,
+            intermediate_size=2048,
+            is_decoder=True,
+            add_cross_attention=True,
+        )
+
+        self.encoder = BertModel(encoder_config)
+        self.length_predictor = nn.Linear(512, 512)
+        self.decoder0 = BertModel(decoder_config0)
+        self.morph_classifier = nn.Linear(512, tokenizers["morph"].vocab_size)
+        self.decoder1 = BertModel(decoder_config1)
+        self.tag_classifier = nn.Linear(512, tokenizers["tag"].vocab_size)
+
+    def forward(self):
+        pass
+
+    def predict(self, batch):
+        # print(batch)
+        enc_inp = {
+            "input_ids": batch["enc_input_ids"],
+            "attention_mask": batch["enc_attention_mask"],
+        }
+
+        enc_hidden = self.encoder(**enc_inp).last_hidden_state
+        length_logits = self.length_predictor(enc_hidden)
+        lengths = torch.argmax(length_logits, dim=-1)
+        lengths[enc_inp["input_ids"] == self.tokenizers["src"].token_to_id(" ")] = 0
+        lengths[
+            (enc_inp["input_ids"] != self.tokenizers["src"].token_to_id(" "))
+            & (lengths == 0)
+        ] = 1
+        lengths[enc_inp["input_ids"] == self.tokenizers["src"].pad_token_id] = 0
+        dec_inp = self.tokenizers["length"].decode(lengths.tolist())
+
+        for k, v in dec_inp.items():
+            dec_inp[k] = torch.tensor(v).to(device=enc_hidden.device)
+
+        dec0_hidden = self.decoder0(
+            **dec_inp,
+            encoder_hidden_states=enc_hidden,
+            encoder_attention_mask=enc_inp["attention_mask"]
+        ).last_hidden_state
+        morph_logit = self.morph_classifier(dec0_hidden)
+        morphs = torch.argmax(morph_logit, dim=-1)
+        morphs = self.tokenizers["morph"].batch_decode(morphs.tolist())
+
+        dec1_hidden = self.decoder1(
+            **dec_inp,
+            encoder_hidden_states=enc_hidden,
+            encoder_attention_mask=enc_inp["attention_mask"]
+        ).last_hidden_state
+        tag_logit = self.tag_classifier(dec1_hidden)
+        tags = torch.argmax(tag_logit, dim=-1)
+        tags = self.tokenizers["tag"].batch_decode(tags.tolist())
+
+        print(morphs)
+        print(tags)
+
+        # print(self.tokenizers["src"].token_to_id(" "))
+        assert 0
+        pass
 
 
 class LightningWrapper(L.LightningModule):
-    def __init__(self, model, tokenizer, metric) -> None:
+    def __init__(self, args, tokenizers, metric) -> None:
         super().__init__()
 
-        self.model = NNWrapper(model)
+        self.model = ARCHITECTURE[args.architecture](tokenizers)
 
-        self.tokenizer = tokenizer
+        self.tokenizer = tokenizers
         self.metric = metric
 
     def forward(self, batch):
@@ -29,6 +112,8 @@ class LightningWrapper(L.LightningModule):
         return outputs
 
     def training_step(self, batch, batch_id):
+        print("train")
+        assert 0
         loss = None
         """
         output = self(batch)
@@ -39,8 +124,8 @@ class LightningWrapper(L.LightningModule):
 
         return loss
 
-    def predict(self, batch, batch_id):
-        outputs = self(**batch)
+    def predict(self, batch):
+        outputs = self.model.predict(batch)
         """
         outputs = some_processing(outputs)
         """
@@ -49,14 +134,11 @@ class LightningWrapper(L.LightningModule):
 
     @torch.no_grad()
     def validation_step(self, batch, batch_id):
-        model_input = {}
-        target = None
-        """
-        model_input = pick(batch)
-        """
-        outputs = self.predict(**model_input)
+        outputs = self.predict(batch)
 
-        result = self.metric(outputs, target)
+        assert 0
+
+        # result = self.metric(outputs, target)
 
         self.log_dict({})
 
@@ -88,3 +170,6 @@ class LightningWrapper(L.LightningModule):
         # lr_scheduler
         optimizer = optim.Adam(self.parameters(), lr=1e-3)
         return optimizer
+
+
+ARCHITECTURE = {"Enc1NARDec2": Enc1NARDec2}

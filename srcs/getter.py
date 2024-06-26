@@ -1,10 +1,16 @@
 import yaml
 
 from lightning import Trainer
-from transformers import AutoTokenizer, AutoConfig, AutoModelForSeq2SeqLM
-from peft import PeftConfig, PeftModel, LoraConfig, get_peft_model
+from transformers import AutoConfig, AutoModelForSeq2SeqLM
 
-from srcs.tokenizer import Tokenizer
+
+from srcs.tokenizer import (
+    srcTokenizer,
+    tgtTokenizer,
+    morphTokenizer,
+    tagTokenizer,
+    lengthTokenizer,
+)
 from srcs.data.metric import METRIC
 from srcs.data.datamodule import DataModule
 from srcs.lightning_wrapper import LightningWrapper
@@ -25,29 +31,36 @@ def get_datamodule(args, tokenizer):
 
 def get_model(args):
     # tokenizer
-    tokenizer = Tokenizer()
-    # read vocab
-    # do something
+    src_tokenizer = srcTokenizer(args)
+    tgt_tokenizer = tgtTokenizer(args)
+    morph_tokenizer = morphTokenizer(args)
+    tag_tokenizer = tagTokenizer(args)
+    length_tokenzier = lengthTokenizer(args)
 
-    # model
-    model = AutoModelForSeq2SeqLM.from_pretrained(args.model)
-    config = AutoConfig.from_pretrained(args.model)
-    # init weights
+    tokenizers = {
+        "src": src_tokenizer,
+        "tgt": tgt_tokenizer,
+        "morph": morph_tokenizer,
+        "tag": tag_tokenizer,
+        "length": length_tokenzier,
+    }
+
+    # # 모델 및 구성 불러오기
+    # config = AutoConfig.from_pretrained(args.model)
+    # model = AutoModelForSeq2SeqLM.from_pretrained(args.model)
 
     metric = METRIC[args.data]()
 
     if args.mode == "fit":
-        model = LightningWrapper(model, config, tokenizer, metric)
+        model = LightningWrapper(args, tokenizers, metric)
 
     if args.mode == "test":
-        path = None
-        model = PeftModel.from_pretrained(model, path)
-        model = model.merge_and_unload()
         """
+        model = LightningWrapper.load_from_ckpt()
         load from ckpt
         """
 
-    return model, tokenizer
+    return model, tokenizers
 
 
 def get_trainer(args):

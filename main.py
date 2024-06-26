@@ -11,7 +11,6 @@ if __name__ == "__main__":
     parser.add_argument(
         "--mode", required=True, default=None, type=str, choices=["fit", "test"]
     )
-    parser.add_argument("--model", required=True, default=None, type=str)
     parser.add_argument(
         "--architecture",
         required=True,

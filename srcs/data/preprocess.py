@@ -33,7 +33,7 @@ def sejong(examples, tokenizers):
 
     inputs["dec_input_ids"] = tokenizers["length"].decode(
         inputs["enc_tgt"], examples["morph_tgt"], max_length=512, mode="max"
-    )
+    )["input_ids"]
 
     return inputs
 

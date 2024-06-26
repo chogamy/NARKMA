@@ -100,6 +100,9 @@ class BaseTokenizer:
     def decode(self, id_list):
         return [self.id_to_token(id) for id in id_list]
 
+    def batch_decode(self, id_lists):
+        return [self.decode(id_list) for id_list in id_lists]
+
 
 class srcTokenizer(BaseTokenizer):
     def __init__(self, args) -> None:
@@ -107,9 +110,6 @@ class srcTokenizer(BaseTokenizer):
             os.getcwd(), "data", args.data, args.architecture, "vocab", "src.txt"
         )
         super().__init__(path)
-
-    # def pre_tokenize(self, text):
-    #     return list(text)
 
 
 class tgtTokenizer(BaseTokenizer):
@@ -119,26 +119,6 @@ class tgtTokenizer(BaseTokenizer):
         )
         super().__init__(path)
 
-    # def pre_tokenize(self, text):
-    #     eojs = text.split(" ")
-    #     decomposed_text = []
-    #     for eoj in eojs:
-    #         mts = eoj.split("+")
-    #         for mt in mts:
-    #             m, t = mt.rsplit("/", 1)
-    #             decomposed_text.append(m)
-    #             decomposed_text.append(f"/{t}")
-    #             decomposed_text.append("+")
-
-    #         decomposed_text = decomposed_text[:-1]
-    #         decomposed_text.append(" ")
-
-    #     decomposed_text = decomposed_text[:-1]
-
-    #     assert "".join(decomposed_text) == text, f"{decomposed_text}\n{text}"
-
-    #     return decomposed_text
-
 
 class morphTokenizer(BaseTokenizer):
     def __init__(self, args) -> None:
@@ -146,24 +126,6 @@ class morphTokenizer(BaseTokenizer):
             os.getcwd(), "data", args.data, args.architecture, "vocab", "morph.txt"
         )
         super().__init__(path)
-
-    # def pre_tokenize(self, text):
-    #     eojs = text.split(" ")
-    #     morphs = []
-    #     for eoj in eojs:
-    #         ms = eoj.split("+")
-    #         for m in ms:
-    #             morphs.append(m)
-    #             morphs.append("+")
-
-    #         morphs = morphs[:-1]
-    #         morphs.append(" ")
-
-    #     morphs = morphs[:-1]
-
-    #     assert "".join(morphs) == text, f"{morphs}\n{text}"
-
-    #     return morphs
 
 
 class tagTokenizer(BaseTokenizer):
@@ -198,10 +160,10 @@ class lengthTokenizer(BaseTokenizer):
 
         return lengths
 
-    def decode(self, len_seqs, tgts, max_length=None, mode="max"):
-        inps = []
+    def decode(self, len_seqs, tgts=None, max_length=512, mode="max"):
+        outputs = {"input_ids": [], "attention_mask": []}
 
-        for len_seq, tgt in zip(len_seqs, tgts):
+        for i, len_seq in enumerate(len_seqs):
             inp = []
             part = []
             for l in len_seq:
@@ -222,11 +184,17 @@ class lengthTokenizer(BaseTokenizer):
 
             inp = inp[:-1]
 
-            assert len("".join(tgt)) == len(
-                inp
-            ), f"{tgt}{inp}\n{len(''.join(tgt))}{len(inp)}"
+            if tgts is not None:
+                assert len("".join(tgts[i])) == len(
+                    inp
+                ), f"{tgts[i]}{inp}\n{len(''.join(tgts[i]))}{len(inp)}"
 
+            if len(inp) > max_length:
+                inp = inp[:max_length]
+
+            attention_mask = [1] * len(inp) + [0] * (max_length - len(inp))
             inp = inp + [0] * (max_length - len(inp))
-            inps.append(inp)
+            outputs["input_ids"].append(inp)
+            outputs["attention_mask"].append(attention_mask)
 
-        return inps
+        return outputs

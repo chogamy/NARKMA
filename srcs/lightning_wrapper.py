@@ -59,7 +59,7 @@ class Enc1NARDec2(nn.Module):
         pass
 
     def predict(self, batch):
-        # print(batch)
+
         enc_inp = {
             "input_ids": batch["enc_input_ids"],
             "attention_mask": batch["enc_attention_mask"],
@@ -165,36 +165,22 @@ class LightningWrapper(L.LightningModule):
         targets = ["".join(target) for target in batch["tgt"]]
         outputs = self.predict(batch)
 
-        print(outputs)
-        print(targets)
-        assert 0
-
-        result = self.metric(outputs, targets)
-
-        self.log_dict({})
+        self.metric.update(outputs, targets)
 
     @torch.no_grad()
     def test_step(self, batch, batch_id):
-        model_input = {}
-        target = None
-        """
-        model_input = pick(batch)
-        """
-        outputs = self.predict(**model_input)
+        targets = ["".join(target) for target in batch["tgt"]]
+        outputs = self.predict(batch)
 
-        result = self.metric(outputs, target)
-
-        self.log_dict({})
+        self.metric.update(outputs, targets)
 
     def on_validation_epoch_end(self):
-        self.eval()
-        self.log_dict()
+        self.log_dict(self.metric.compute())
+        self.metric.reset()
 
     def on_test_epoch_end(self):
-        self.eval()
-        self.log_dict()
-
-        self.metric.save()
+        self.log_dict(self.metric.compute())
+        self.metric.reset()
 
     def configure_optimizers(self):
         # optimizer

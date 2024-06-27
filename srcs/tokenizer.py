@@ -98,6 +98,13 @@ class BaseTokenizer:
         return [self.token_to_id(char) for char in char_list]
 
     def decode(self, id_list):
+        # if skip_special_token == True:
+        #     return [
+        #         self.id_to_token(id)
+        #         for id in id_list
+        #         if id not in self.special_tokens.values()
+        #     ]
+        # else:
         return [self.id_to_token(id) for id in id_list]
 
     def batch_decode(self, id_lists):
@@ -160,18 +167,23 @@ class lengthTokenizer(BaseTokenizer):
 
         return lengths
 
-    def decode(self, len_seqs, tgts=None, max_length=512, mode="max"):
+    def decode(
+        self, len_seqs, tgts=None, max_length=512, mode="max", space_id=5, pad_id=-100
+    ):
+        # len_seq: 123, 321, 0, 345, 12, 0, -100, -100
         outputs = {"input_ids": [], "attention_mask": []}
 
         for i, len_seq in enumerate(len_seqs):
             inp = []
             part = []
             for l in len_seq:
-                if l == 0:
+                if l == pad_id:
+                    break
+                elif l == 0:
                     if part:
                         if mode == "max":
                             inp.extend([1] * max(part))
-                            inp.append(0)
+                            inp.append(space_id)
                         part = []
                 else:
                     part.append(l)
@@ -179,7 +191,7 @@ class lengthTokenizer(BaseTokenizer):
             if part:
                 if mode == "max":
                     inp.extend([1] * max(part))
-                    inp.append(0)
+                    inp.append(space_id)
                 part = []
 
             inp = inp[:-1]

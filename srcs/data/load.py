@@ -226,6 +226,7 @@ def sejong(split):
     source = "srcs"
     morph_target = "morphs"
     tag_target = "expand_tags"
+    target = "decompose_tgts"
 
     with open(os.path.join(path, f"{split}.txt"), encoding="utf-8-sig") as f:
         for line in tqdm(f, desc=f"{split}"):
@@ -235,13 +236,19 @@ def sejong(split):
                 src = " ".join(src)
                 tgt = " ".join(tgt)
                 text = Text(src, tgt, 512, split)
-                for src, morph_tgt, tag_tgt in zip(
+                for src, morph_tgt, tag_tgt, tgt in zip(
                     getattr(text, source),
                     getattr(text, morph_target),
                     getattr(text, tag_target),
+                    getattr(text, target),
                 ):
                     dataset.append(
-                        {"src": src, "morph_tgt": morph_tgt, "tag_tgt": tag_tgt}
+                        {
+                            "src": src,
+                            "morph_tgt": morph_tgt,
+                            "tag_tgt": tag_tgt,
+                            "tgt": tgt,
+                        }
                     )
 
                 src, tgt = [], []

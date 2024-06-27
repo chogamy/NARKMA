@@ -9,7 +9,14 @@ from torch.utils.data import DataLoader
 from .preprocess import PREPROCESS
 from .load import LOAD
 
-KEYS = []
+KEYS = [
+    "enc_input_ids",
+    "enc_attention_mask",
+    "dec0_tgt",
+    "dec_attention_mask" "dec1_tgt",
+    "enc_tgt",
+    "dec_input_ids",
+]
 
 
 @dataclass
@@ -18,7 +25,10 @@ class Collator:
         # features: list of dict
         batch = {}
         for key in features[0].keys():
-            batch[key] = torch.tensor([feature[key] for feature in features])
+            if key in KEYS:
+                batch[key] = torch.tensor([feature[key] for feature in features])
+            else:
+                batch[key] = [feature[key] for feature in features]
 
         return batch
 
@@ -34,7 +44,8 @@ class DataModule(L.LightningDataModule):
         dir = os.path.join(
             os.getcwd(), "data", self.args.data, self.args.architecture, "cache"
         )
-        remove_columns = ["src", "morph_tgt", "tag_tgt"]
+        # remove_columns = ["src", "morph_tgt", "tag_tgt"]
+        remove_columns = []
 
         def load_and_preprocess_data(split_name, remove_columns, tokenizers):
             if os.path.exists(os.path.join(dir, split_name)):

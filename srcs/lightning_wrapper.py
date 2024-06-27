@@ -55,11 +55,38 @@ class Enc1NARDec2(nn.Module):
             == tokenizers["morph"].token_to_id(" ")
         )
 
-    def forward(self):
-        pass
+    def forward(self, batch):
+        enc_inp = {
+            "input_ids": batch["enc_input_ids"],
+            "attention_mask": batch["enc_attention_mask"],
+        }
+        enc_hidden = self.encoder(**enc_inp).last_hidden_state
+        length_logit = self.length_predictor(enc_hidden)
+        length_loss = F.cross_entropy(length_logit.transpose(1, 2), batch["enc_tgt"])
+
+        dec0_inp = {
+            "input_ids": batch["dec_input_ids"],
+            "attention_mask": batch["dec_attention_mask"],
+            "encoder_hidden_states": enc_hidden,
+            "encoder_attention_mask": enc_inp["attention_mask"],
+        }
+        dec0_hidden = self.decoder0(**dec0_inp).last_hidden_state
+        dec0_logit = self.morph_classifier(dec0_hidden)
+        dec0_loss = F.cross_entropy(dec0_logit.transpose(1, 2), batch["dec0_tgt"])
+
+        dec1_inp = {
+            "input_ids": batch["dec_input_ids"],
+            "attention_mask": batch["dec_attention_mask"],
+            "encoder_hidden_states": enc_hidden,
+            "encoder_attention_mask": enc_inp["attention_mask"],
+        }
+        dec1_hidden = self.decoder1(**dec1_inp).last_hidden_state
+        dec1_logit = self.tag_classifier(dec1_hidden)
+        dec1_loss = F.cross_entropy(dec1_logit.transpose(1, 2), batch["dec1_tgt"])
+
+        return length_loss + dec0_loss + dec1_loss
 
     def predict(self, batch):
-
         enc_inp = {
             "input_ids": batch["enc_input_ids"],
             "attention_mask": batch["enc_attention_mask"],
@@ -139,17 +166,11 @@ class LightningWrapper(L.LightningModule):
         self.metric = metric
 
     def forward(self, batch):
-        outputs = self.model(**batch)
-        return outputs
+        loss = self.model(batch)
+        return loss
 
     def training_step(self, batch, batch_id):
-        print("train")
-        assert 0
-        loss = None
-        """
-        output = self(batch)
-        loss = loss_funct(output, batch['target'])
-        """
+        loss = self(batch)
 
         self.log_dict({"loss": loss}, prog_bar=True)
 

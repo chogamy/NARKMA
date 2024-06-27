@@ -13,7 +13,8 @@ KEYS = [
     "enc_input_ids",
     "enc_attention_mask",
     "dec0_tgt",
-    "dec_attention_mask" "dec1_tgt",
+    "dec_attention_mask",
+    "dec1_tgt",
     "enc_tgt",
     "dec_input_ids",
 ]

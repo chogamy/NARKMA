@@ -55,7 +55,6 @@ class LightningWrapper(L.LightningModule):
         self.metric.reset()
 
     def configure_optimizers(self):
-        # Prepare optimizer
         param_optimizer = list(self.model.named_parameters())
         no_decay = ["bias", "LayerNorm.bias", "LayerNorm.weight"]
         optimizer_grouped_parameters = [
@@ -73,9 +72,7 @@ class LightningWrapper(L.LightningModule):
             },
         ]
 
-        self.trainer.estimated_stepping_batches
-
-        steps = int(self.args.batch_size * len(self.trainer.train_dataloader))
+        steps = self.trainer.estimated_stepping_batches
         warmup_steps = int(steps * self.args.warmup_rate)
 
         optimizer = torch.optim.AdamW(optimizer_grouped_parameters, lr=self.args.lr)

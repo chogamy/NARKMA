@@ -88,21 +88,27 @@ class DataModule(L.LightningDataModule):
         return DataLoader(
             self.train,
             collate_fn=Collator(),
-            batch_size=self.args.trainer_args["limit_train_batches"],
+            batch_size=self.args.batch_size,
+            num_workers=8,
+            persistent_workers=True,
         )
 
     def val_dataloader(self):
         return DataLoader(
             self.valid,
             collate_fn=Collator(),
-            batch_size=self.args.trainer_args["limit_val_batches"],
+            batch_size=self.args.batch_size,
+            num_workers=8,
+            persistent_workers=True,
         )
 
     def test_dataloader(self):
         return DataLoader(
             self.test,
             collate_fn=Collator(),
-            batch_size=self.args.trainer_args["limit_test_batches"],
+            batch_size=self.args.batch_size,
+            num_workers=8,
+            persistent_workers=True,
         )
 
     def predict_dataloader(self):
@@ -110,5 +116,7 @@ class DataModule(L.LightningDataModule):
         return DataLoader(
             self.test,
             collate_fn=Collator(),
-            batch_size=self.args.trainer_args["limit_predict_batches"],
+            batch_size=self.args.batch_size,
+            num_workers=8,
+            persistent_workers=True,
         )

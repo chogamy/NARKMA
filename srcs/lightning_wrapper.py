@@ -34,17 +34,19 @@ class LightningWrapper(L.LightningModule):
 
     @torch.no_grad()
     def validation_step(self, batch, batch_id):
-        targets = ["".join(target) for target in batch["tgt"]]
+        keys = ["".join(target) for target in batch["original_src"]]
+        targets = ["".join(target) for target in batch["original_tgt"]]
         outputs = self.predict(batch)
 
-        self.metric.update(outputs, targets)
+        self.metric.update(keys, outputs, targets)
 
     @torch.no_grad()
     def test_step(self, batch, batch_id):
-        targets = ["".join(target) for target in batch["tgt"]]
+        keys = ["".join(target) for target in batch["original_src"]]
+        targets = ["".join(target) for target in batch["original_tgt"]]
         outputs = self.predict(batch)
 
-        self.metric.update(outputs, targets)
+        self.metric.update(keys, outputs, targets)
 
     def on_validation_epoch_end(self):
         self.log_dict(self.metric.compute())

@@ -76,6 +76,8 @@ class Text:
             self.expand_tag(tag, morph) for tag, morph in zip(self.tags, self.morphs)
         ]
 
+        self.src = list(self.src)
+
         # self.encoder_target = [
         #     self.encoder_output(src, morph)
         #     for src, morph in zip(self.srcs, self.morphs)
@@ -244,6 +246,8 @@ def sejong(split):
                 ):
                     dataset.append(
                         {
+                            "original_src": text.src,
+                            "original_tgt": text.decompose_tgt,
                             "src": src,
                             "morph_tgt": morph_tgt,
                             "tag_tgt": tag_tgt,

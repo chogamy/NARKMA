@@ -6,17 +6,27 @@ from torchmetrics import Metric
 class sejong(Metric):
     def __init__(self) -> None:
         super().__init__()
-        self.preds = []
-        self.target = []
+        self.preds = {}
+        self.targets = {}
 
-    def update(self, preds, target):
-        self.preds.extend(preds)
-        self.target.extend(target)
+    def update(self, keys, preds, targets):
+        for key, pred, target in zip(keys, preds, targets):
+            if key in self.preds:
+                self.preds[key].append(pred)
+                self.targets[key].append(target)
+            else:
+                self.preds[key] = [pred]
+                self.targets[key] = [target]
 
     def compute(self):
         f1s = []
         accs = []
-        for p, t in zip(self.preds, self.target):
+        assert self.preds.keys() == self.targets.keys()
+        for key in self.preds.keys():
+            p = " ".join(self.preds[key])
+            t = " ".join(self.targets[key])
+            print(t)
+
             f1s.append(self.f1(p, t))
             accs.append(self.acc(p, t))
 

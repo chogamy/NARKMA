@@ -25,7 +25,6 @@ class sejong(Metric):
         for key in self.preds.keys():
             p = " ".join(self.preds[key])
             t = " ".join(self.targets[key])
-            print(t)
 
             f1s.append(self.f1(p, t))
             accs.append(self.acc(p, t))

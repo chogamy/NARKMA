@@ -3,8 +3,6 @@ import os
 from tqdm import tqdm
 from datasets import Dataset
 
-MAX_LENGTH = 512
-
 TAG = [
     "/EC",
     "/EF",
@@ -219,7 +217,7 @@ class Text:
         return srcs, tgts
 
 
-def sejong(split):
+def sejong(args, split):
     path = os.path.join(os.getcwd(), "data", "sejong")
 
     src, tgt = [], []
@@ -237,7 +235,7 @@ def sejong(split):
             if line == "" and src != [] and tgt != []:
                 src = " ".join(src)
                 tgt = " ".join(tgt)
-                text = Text(src, tgt, 512, split)
+                text = Text(src, tgt, args.max_length, split)
                 for src, morph_tgt, tag_tgt, tgt in zip(
                     getattr(text, source),
                     getattr(text, morph_target),
@@ -267,4 +265,3 @@ def sejong(split):
 
 
 LOAD = {"sejong": sejong}
-# MAX_LENGTH = {"lucadiliello/bart-small": 512, "google-t5/t5-small": 512}

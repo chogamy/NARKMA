@@ -5,13 +5,16 @@ from transformers import BertModel, BertConfig
 
 
 class Enc1NARDec2(nn.Module):
-    def __init__(self, tokenizers):
+    def __init__(self, args, tokenizers):
         super().__init__()
 
+        self.args = args
         self.tokenizers = tokenizers
 
         encoder_config = BertConfig(
             vocab_size=tokenizers["src"].vocab_size,
+            max_position_embeddings=args.max_length,
+            classifier_dropout=0.1,
             num_hidden_layers=6,
             hidden_size=512,
             num_attention_heads=8,
@@ -21,6 +24,8 @@ class Enc1NARDec2(nn.Module):
 
         decoder_config0 = BertConfig(
             vocab_size=tokenizers["morph"].vocab_size,
+            max_position_embeddings=args.max_length,
+            classifier_dropout=0.1,
             num_hidden_layers=1,
             hidden_size=512,
             num_attention_heads=8,
@@ -31,6 +36,8 @@ class Enc1NARDec2(nn.Module):
 
         decoder_config1 = BertConfig(
             vocab_size=tokenizers["tag"].vocab_size,
+            max_position_embeddings=args.max_length,
+            classifier_dropout=0.1,
             num_hidden_layers=1,
             hidden_size=512,
             num_attention_heads=8,
@@ -40,7 +47,7 @@ class Enc1NARDec2(nn.Module):
         )
 
         self.encoder = BertModel(encoder_config)
-        self.length_predictor = nn.Linear(512, 512)
+        self.length_predictor = nn.Linear(512, args.max_length)
         self.decoder0 = BertModel(decoder_config0)
         self.morph_classifier = nn.Linear(512, tokenizers["morph"].vocab_size)
         self.decoder1 = BertModel(decoder_config1)
@@ -99,6 +106,7 @@ class Enc1NARDec2(nn.Module):
         dec_inp = self.tokenizers["length"].decode(
             lengths.tolist(),
             space_id=self.space_id,
+            max_length=self.args.max_length,
             pad_id=-100,
         )
         lengths = [sum(a) for a in dec_inp["attention_mask"]]

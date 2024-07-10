@@ -53,13 +53,14 @@ class DataModule(L.LightningDataModule):
                 dataset = load_from_disk(os.path.join(dir, split_name))
             else:
                 os.makedirs(os.path.join(dir, split_name), exist_ok=True)
-                dataset = LOAD[self.args.data](split_name)
+                dataset = LOAD[self.args.data](self.args, split_name)
 
                 dataset = dataset.map(
                     PREPROCESS[self.args.data],
                     remove_columns=remove_columns,
                     fn_kwargs={
                         "tokenizers": tokenizers,
+                        "max_length": self.args.max_length,
                     },
                     load_from_cache_file=True,
                     keep_in_memory=True,

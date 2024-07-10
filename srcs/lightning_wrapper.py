@@ -10,7 +10,7 @@ class LightningWrapper(L.LightningModule):
     def __init__(self, args, tokenizers, metric) -> None:
         super().__init__()
 
-        self.model = ARCHITECTURE[args.architecture](tokenizers)
+        self.model = ARCHITECTURE[args.architecture](args, tokenizers)
 
         self.tokenizer = tokenizers
         self.metric = metric

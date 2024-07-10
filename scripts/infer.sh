@@ -1,1 +1,1 @@
-python main.py --mode test --model EleutherAI/gpt-neo-125m --data ConvAI2
+python main.py --mode test --architecture Enc1NARDec2 --data sejong

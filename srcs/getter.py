@@ -1,7 +1,9 @@
+import os
 import yaml
 
 from lightning import Trainer
 from transformers import AutoConfig, AutoModelForSeq2SeqLM
+from lightning.pytorch.callbacks import ModelCheckpoint
 
 
 from srcs.tokenizer import (
@@ -19,6 +21,9 @@ from srcs.lightning_wrapper import LightningWrapper
 def get_args(args):
     with open(args.trainer_args) as f:
         args.trainer_args = yaml.load(f, Loader=yaml.FullLoader)
+    args.trainer_args["default_root_dir"] = os.path.join(
+        "params", args.architecture, args.data
+    )
     return args
 
 
@@ -55,15 +60,30 @@ def get_model(args):
         model = LightningWrapper(args, tokenizers, metric)
 
     if args.mode == "test":
-        """
-        model = LightningWrapper.load_from_ckpt()
-        load from ckpt
-        """
+        path = os.path.join(
+            args.trainer_args["default_root_dir"],
+            "lightning_logs",
+            "version_0",
+            "checkpoints",
+            "last.ckpt",
+        )
+        model = LightningWrapper.load_from_checkpoint(
+            path, args=args, tokenizers=tokenizers, metric=metric
+        )
 
     return model, tokenizers
 
 
+def get_callbacks(args):
+    ckpt_callback = ModelCheckpoint(
+        dirpath=args.trainer_args["default_root_dir"], filename="last"
+    )
+
+    return [ckpt_callback]
+
+
 def get_trainer(args):
+    args.trainer_args["callbacks"] = get_callbacks(args)
     trainer = Trainer(**args.trainer_args)
 
     return trainer

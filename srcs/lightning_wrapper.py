@@ -16,6 +16,8 @@ class LightningWrapper(L.LightningModule):
         self.metric = metric
         self.args = args
 
+        self.save_hyperparameters(args)
+
     def forward(self, batch):
         loss = self.model(batch)
         return loss

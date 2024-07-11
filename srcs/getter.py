@@ -2,8 +2,8 @@ import os
 import yaml
 
 from lightning import Trainer
-from transformers import AutoConfig, AutoModelForSeq2SeqLM
 from lightning.pytorch.callbacks import ModelCheckpoint
+from lightning.pytorch.strategies import DDPStrategy
 
 
 from srcs.tokenizer import (
@@ -84,6 +84,7 @@ def get_callbacks(args):
 
 def get_trainer(args):
     args.trainer_args["callbacks"] = get_callbacks(args)
+    args.trainer_args["strategy"] = DDPStrategy(find_unused_parameters=True)
     trainer = Trainer(**args.trainer_args)
 
     return trainer

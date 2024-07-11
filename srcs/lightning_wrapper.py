@@ -51,11 +51,11 @@ class LightningWrapper(L.LightningModule):
         self.metric.update(keys, outputs, targets)
 
     def on_validation_epoch_end(self):
-        self.log_dict(self.metric.compute())
+        self.log_dict(self.metric.compute(), sync_dist=True)
         self.metric.reset()
 
     def on_test_epoch_end(self):
-        self.log_dict(self.metric.compute())
+        self.log_dict(self.metric.compute(), sync_dist=True)
         self.metric.reset()
 
     def configure_optimizers(self):

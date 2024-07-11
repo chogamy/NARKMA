@@ -50,10 +50,6 @@ def get_model(args):
         "length": length_tokenzier,
     }
 
-    # # 모델 및 구성 불러오기
-    # config = AutoConfig.from_pretrained(args.model)
-    # model = AutoModelForSeq2SeqLM.from_pretrained(args.model)
-
     metric = METRIC[args.data]()
 
     if args.mode == "fit":

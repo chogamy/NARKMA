@@ -1,7 +1,7 @@
 import torch
 from torch import nn
 from torch.nn import functional as F
-from transformers import BertModel, BertConfig
+from .utils import Transformer
 
 
 class Enc1NARDec2(nn.Module):
@@ -11,48 +11,6 @@ class Enc1NARDec2(nn.Module):
         self.args = args
         self.tokenizers = tokenizers
 
-        encoder_config = BertConfig(
-            vocab_size=tokenizers["src"].vocab_size,
-            max_position_embeddings=args.max_length,
-            classifier_dropout=0.1,
-            num_hidden_layers=6,
-            hidden_size=512,
-            num_attention_heads=8,
-            intermediate_size=2048,
-            is_decoder=False,
-        )
-
-        decoder_config0 = BertConfig(
-            vocab_size=tokenizers["morph"].vocab_size,
-            max_position_embeddings=args.max_length,
-            classifier_dropout=0.1,
-            num_hidden_layers=1,
-            hidden_size=512,
-            num_attention_heads=8,
-            intermediate_size=2048,
-            is_decoder=True,
-            add_cross_attention=True,
-        )
-
-        decoder_config1 = BertConfig(
-            vocab_size=tokenizers["tag"].vocab_size,
-            max_position_embeddings=args.max_length,
-            classifier_dropout=0.1,
-            num_hidden_layers=1,
-            hidden_size=512,
-            num_attention_heads=8,
-            intermediate_size=2048,
-            is_decoder=True,
-            add_cross_attention=True,
-        )
-
-        self.encoder = BertModel(encoder_config)
-        self.length_predictor = nn.Linear(512, args.max_length)
-        self.decoder0 = BertModel(decoder_config0)
-        self.morph_classifier = nn.Linear(512, tokenizers["morph"].vocab_size)
-        self.decoder1 = BertModel(decoder_config1)
-        self.tag_classifier = nn.Linear(512, tokenizers["tag"].vocab_size)
-
         self.space_id = tokenizers["tag"].token_to_id(" ")
         assert (
             tokenizers["src"].token_to_id(" ")
@@ -60,34 +18,77 @@ class Enc1NARDec2(nn.Module):
             == tokenizers["morph"].token_to_id(" ")
         )
 
+        self.encoder = Transformer(
+            emb_size=tokenizers["src"].vocab_size,
+            pos="absolute",
+            max_length=args.max_length,
+            num_hidden_layers=6,
+            hidden_size=512,
+            num_attention_heads=8,
+            activation_funcion="gelu",
+            intermediate_size=2048,
+            classifier_size=args.max_length,
+            dropout=0.1,
+            is_decoder=False,
+            is_causal=False,
+        )
+
+        self.decoder0 = Transformer(
+            emb_size=6,
+            pos="absolute",
+            max_length=args.max_length,
+            num_hidden_layers=1,
+            hidden_size=512,
+            num_attention_heads=8,
+            activation_funcion="gelu",
+            intermediate_size=2048,
+            classifier_size=tokenizers["morph"].vocab_size,
+            dropout=0.1,
+            is_decoder=True,
+            is_causal=False,
+        )
+        self.decoder1 = Transformer(
+            emb_size=6,
+            pos="absolute",
+            max_length=args.max_length,
+            num_hidden_layers=1,
+            hidden_size=512,
+            num_attention_heads=8,
+            activation_funcion="gelu",
+            intermediate_size=2048,
+            classifier_size=tokenizers["tag"].vocab_size,
+            dropout=0.1,
+            is_decoder=True,
+            is_causal=False,
+        )
+
     def forward(self, batch):
         enc_inp = {
             "input_ids": batch["enc_input_ids"],
             "attention_mask": batch["enc_attention_mask"],
         }
-        enc_hidden = self.encoder(**enc_inp).last_hidden_state
-        length_logit = self.length_predictor(enc_hidden)
-        length_loss = F.cross_entropy(length_logit.transpose(1, 2), batch["enc_tgt"])
+        enc_out = self.encoder(
+            **enc_inp, output_last_hidden_state=True, output_logits=True
+        )
+        length_loss = F.cross_entropy(enc_out.logits.transpose(1, 2), batch["enc_tgt"])
 
         dec0_inp = {
             "input_ids": batch["dec_input_ids"],
             "attention_mask": batch["dec_attention_mask"],
-            "encoder_hidden_states": enc_hidden,
-            "encoder_attention_mask": enc_inp["attention_mask"],
+            "cross_hidden_state": enc_out.last_hidden_state,
+            "cross_hidden_attention_mask": enc_inp["attention_mask"],
         }
-        dec0_hidden = self.decoder0(**dec0_inp).last_hidden_state
-        dec0_logit = self.morph_classifier(dec0_hidden)
-        dec0_loss = F.cross_entropy(dec0_logit.transpose(1, 2), batch["dec0_tgt"])
+        dec0_out = self.decoder0(**dec0_inp, output_logits=True)
+        dec0_loss = F.cross_entropy(dec0_out.logits.transpose(1, 2), batch["dec0_tgt"])
 
         dec1_inp = {
             "input_ids": batch["dec_input_ids"],
             "attention_mask": batch["dec_attention_mask"],
-            "encoder_hidden_states": enc_hidden,
-            "encoder_attention_mask": enc_inp["attention_mask"],
+            "cross_hidden_state": enc_out.last_hidden_state,
+            "cross_hidden_attention_mask": enc_inp["attention_mask"],
         }
-        dec1_hidden = self.decoder1(**dec1_inp).last_hidden_state
-        dec1_logit = self.tag_classifier(dec1_hidden)
-        dec1_loss = F.cross_entropy(dec1_logit.transpose(1, 2), batch["dec1_tgt"])
+        dec0_out = self.decoder1(**dec1_inp, output_logits=True)
+        dec1_loss = F.cross_entropy(dec0_out.logits.transpose(1, 2), batch["dec1_tgt"])
 
         return length_loss + dec0_loss + dec1_loss
 
@@ -97,9 +98,10 @@ class Enc1NARDec2(nn.Module):
             "attention_mask": batch["enc_attention_mask"],
         }
 
-        enc_hidden = self.encoder(**enc_inp).last_hidden_state
-        length_logits = self.length_predictor(enc_hidden)
-        lengths = torch.argmax(length_logits, dim=-1)
+        enc_out = self.encoder(
+            **enc_inp, output_last_hidden_state=True, output_logits=True
+        )
+        lengths = torch.argmax(enc_out.logits, dim=-1)
         lengths[enc_inp["input_ids"] == self.space_id] = 0
         lengths[(enc_inp["input_ids"] != self.space_id) & (lengths == 0)] = 1
         lengths[enc_inp["input_ids"] == self.tokenizers["src"].pad_token_id] = -100
@@ -112,26 +114,26 @@ class Enc1NARDec2(nn.Module):
         lengths = [sum(a) for a in dec_inp["attention_mask"]]
 
         for k, v in dec_inp.items():
-            dec_inp[k] = torch.tensor(v).to(device=enc_hidden.device)
+            dec_inp[k] = torch.tensor(v).to(device=enc_out.logits.device)
 
-        dec0_hidden = self.decoder0(
+        dec0_out = self.decoder0(
             **dec_inp,
-            encoder_hidden_states=enc_hidden,
-            encoder_attention_mask=enc_inp["attention_mask"]
-        ).last_hidden_state
-        morph_logit = self.morph_classifier(dec0_hidden)
-        morphs = torch.argmax(morph_logit, dim=-1)
+            cross_hidden_state=enc_out.last_hidden_state,
+            cross_hidden_attention_mask=enc_inp["attention_mask"],
+            output_logits=True,
+        )
+        morphs = torch.argmax(dec0_out.logits, dim=-1)
         morphs[dec_inp["input_ids"] == 0] = 0
         morphs[dec_inp["input_ids"] == self.space_id] = self.space_id
         morphs = self.tokenizers["morph"].batch_decode(morphs.tolist())
 
-        dec1_hidden = self.decoder1(
+        dec1_out = self.decoder1(
             **dec_inp,
-            encoder_hidden_states=enc_hidden,
-            encoder_attention_mask=enc_inp["attention_mask"]
-        ).last_hidden_state
-        tag_logit = self.tag_classifier(dec1_hidden)
-        tags = torch.argmax(tag_logit, dim=-1)
+            cross_hidden_state=enc_out.last_hidden_state,
+            cross_hidden_attention_mask=enc_inp["attention_mask"],
+            output_logits=True,
+        )
+        tags = torch.argmax(dec1_out.logits, dim=-1)
         tags[dec_inp["input_ids"] == 0] = 0
         tags[dec_inp["input_ids"] == self.space_id] = self.space_id
         tags = self.tokenizers["tag"].batch_decode(tags.tolist())

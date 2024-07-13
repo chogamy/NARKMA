@@ -56,13 +56,7 @@ def get_model(args):
         model = LightningWrapper(args, tokenizers, metric)
 
     if args.mode == "test":
-        path = os.path.join(
-            args.trainer_args["default_root_dir"],
-            "lightning_logs",
-            "version_0",
-            "checkpoints",
-            "last.ckpt",
-        )
+        path = os.path.join(args.trainer_args["default_root_dir"], "last.ckpt")
         model = LightningWrapper.load_from_checkpoint(
             path, args=args, tokenizers=tokenizers, metric=metric
         )

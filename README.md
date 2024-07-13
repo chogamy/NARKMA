@@ -43,13 +43,22 @@ bash scripts/infer.sh
 ```
 
 
-# 모델 설명(wip)
+# 모델 다운 및 설명
 
-자세한 설명은 링크에 
+[**Enc1NARDec2(100epochs)**](https://drive.google.com/file/d/1Af-YW4DYyCjNoqjSnWbOiWFz0Qp5-zv2/view?usp=drive_link)
+
+원하는 모델을 다운로드 하셔서 압축해제 하고 NARKMA 안에 넣어주세요
 
 ---
 
 # 실험 결과(wip)
+
+|      Model     | Epochs |         ACC        |         F1         |
+|:--------------:|:------:|:------------------:|:------------------:|
+| Enc1ARDec1     |        |                    |                    |
+| Enc1ARDec1_CRF |        |                    |                    |
+| Enc1NARDec2    | 100    | 0.9456928372383118 | 0.9673664569854736 |
+|                | 400    |                    |                    |
 
 ---
 

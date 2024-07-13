@@ -1,12 +1,21 @@
+import platform
 import argparse
 
 
 from lightning import seed_everything
+import torch.distributed
 
 from srcs.getter import get_args, get_model, get_datamodule, get_trainer
 
 
 if __name__ == "__main__":
+
+    if platform.system() == "Windows":
+        import torch
+
+        torch.distributed.init_process_group(
+            backend="gloo", init_method="tcp://127.0.0.1:123", world_size=1, rank=0
+        )
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--mode", required=True, default=None, type=str, choices=["fit", "test"]

@@ -6,13 +6,7 @@ from lightning.pytorch.callbacks import ModelCheckpoint
 from lightning.pytorch.strategies import DDPStrategy
 
 
-from srcs.tokenizer import (
-    srcTokenizer,
-    tgtTokenizer,
-    morphTokenizer,
-    tagTokenizer,
-    lengthTokenizer,
-)
+from srcs.tokenizer import TOKENIZERS
 from srcs.data.metric import METRIC
 from srcs.data.datamodule import DataModule
 from srcs.lightning_wrapper import LightningWrapper
@@ -35,20 +29,7 @@ def get_datamodule(args, tokenizer):
 
 
 def get_model(args):
-    # tokenizer
-    src_tokenizer = srcTokenizer(args)
-    tgt_tokenizer = tgtTokenizer(args)
-    morph_tokenizer = morphTokenizer(args)
-    tag_tokenizer = tagTokenizer(args)
-    length_tokenzier = lengthTokenizer(args)
-
-    tokenizers = {
-        "src": src_tokenizer,
-        "tgt": tgt_tokenizer,
-        "morph": morph_tokenizer,
-        "tag": tag_tokenizer,
-        "length": length_tokenzier,
-    }
+    tokenizers = TOKENIZERS[args.architecture](args)
 
     metric = METRIC[args.data]()
 

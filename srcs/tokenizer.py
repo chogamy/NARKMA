@@ -210,3 +210,18 @@ class lengthTokenizer(BaseTokenizer):
             outputs["attention_mask"].append(attention_mask)
 
         return outputs
+
+
+def Enc1NARDec2(args):
+    tokenizers = {
+        "src": srcTokenizer(args),
+        "tgt": tgtTokenizer(args),
+        "morph": morphTokenizer(args),
+        "tag": tagTokenizer(args),
+        "length": lengthTokenizer(args),
+    }
+
+    return tokenizers
+
+
+TOKENIZERS = {"Enc1NARDec2": Enc1NARDec2}

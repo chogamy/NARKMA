@@ -74,8 +74,6 @@ if __name__ == "__main__":
         for token in special_tokens + tag:
             if token in special_tokens + [" ", "+"]:
                 f.write(f"{token}\n")
-            else:
-                f.write(f"/{token}\n")
         for token in morph:
             if token not in [" ", "+"]:
                 f.write(f"{token}\n")

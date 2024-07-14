@@ -7,7 +7,6 @@ from srcs.data.load import LOAD
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    # parser.add_argument("--model", required=True, default=None, type=str)
     parser.add_argument(
         "--architecture",
         required=True,
@@ -24,11 +23,12 @@ if __name__ == "__main__":
     parser.add_argument(
         "--data", required=True, default=None, type=str, choices=["sejong"]
     )
+    parser.add_argument("--max_length", default=256, type=int)
     args = parser.parse_args()
 
-    train = LOAD[args.data]("train")
-    valid = LOAD[args.data]("valid")
-    test = LOAD[args.data]("test")
+    train = LOAD[args.data](args, "train")
+    valid = LOAD[args.data](args, "valid")
+    test = LOAD[args.data](args, "test")
 
     dataset = DatasetDict({"train": train, "valid": valid, "test": test})
 
@@ -61,7 +61,6 @@ if __name__ == "__main__":
     )
     tag.sort()
 
-    # special_tokens = ["<bos>", "<eos>", "<mask>", "<unk>", "<pad>"]
     special_tokens = []
 
     dir = os.path.join(os.getcwd(), "data", args.data, args.architecture, "vocab")
@@ -89,7 +88,43 @@ if __name__ == "__main__":
         for token in special_tokens + tag:
             f.write(f"{token}\n")
 
-            # if token in special_tokens + [" ", "+"]:
-            #     f.write(f"{token}\n")
-            # else:
-            #     f.write(f"/{token}\n")
+    if "dict" in args.architecture:
+        sentence_dict = {}
+        # splits = ["train", "valid", "test"]
+        splits = ["train"]
+        for split in splits:
+            for src, tgt in zip(
+                dataset[split]["original_src"], dataset[split]["original_tgt"]
+            ):
+                src = "".join(src)
+                tgt = "".join(tgt)
+                sentence_dict[src] = tgt
+
+        eoj_dict_with_cnt = {}
+        for k, v in sentence_dict.items():
+            src_eojs = k.split(" ")
+            tgt_eojs = v.split(" ")
+            assert len(src_eojs) == len(tgt_eojs)
+
+            for src_eoj, tgt_eoj in zip(src_eojs, tgt_eojs):
+                if src_eoj in eoj_dict_with_cnt:
+                    if tgt_eoj in eoj_dict_with_cnt[src_eoj]:
+                        eoj_dict_with_cnt[src_eoj][tgt_eoj] += 1
+                    else:
+                        eoj_dict_with_cnt[src_eoj][tgt_eoj] = 1
+                else:
+                    eoj_dict_with_cnt[src_eoj] = {tgt_eoj: 1}
+        print(len(eoj_dict_with_cnt))
+
+        threshold = 10
+        eoj_dict = {}
+        for k in eoj_dict_with_cnt.keys():
+            if len(eoj_dict_with_cnt[k]) == 1:
+                for t_k, t_v in eoj_dict_with_cnt[k].items():
+                    if t_v > threshold:
+                        eoj_dict[k] = t_k
+        print(len(eoj_dict))
+
+        with open(os.path.join(dir, "dict.txt"), encoding="utf-8", mode="w") as f:
+            for k, v in eoj_dict.items():
+                f.write(f"{k}\t{v}\n")

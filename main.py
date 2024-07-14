@@ -40,7 +40,8 @@ if __name__ == "__main__":
     )
     parser.add_argument("--lr", default=5e-4, type=float)
     parser.add_argument("--warmup_rate", default=0.05, type=float)
-    parser.add_argument("--batch_size", default=128, type=int)
+    parser.add_argument("--batch_size", default=64, type=int)
+    parser.add_argument("--dict", default=False, type=bool)
     args = parser.parse_args()
 
     seed_everything(42, workers=True)

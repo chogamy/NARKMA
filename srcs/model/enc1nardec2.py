@@ -1,3 +1,5 @@
+import os
+
 import torch
 from torch import nn
 from torch.nn import functional as F
@@ -61,6 +63,26 @@ class Enc1NARDec2(nn.Module):
             is_decoder=True,
             is_causal=False,
         )
+
+        if args.dict:
+            self.dict = {}
+            with open(
+                os.path.join(
+                    os.getcwd(),
+                    "data",
+                    args.data,
+                    args.architecture,
+                    "vocab",
+                    "dict.txt",
+                ),
+                encoding="utf-8",
+                mode="r",
+            ) as f:
+                for line in f:
+                    s, t = line.strip().split("\t")
+                    self.dict[s] = t
+        else:
+            self.dict = None
 
     def forward(self, batch):
         enc_inp = {
@@ -160,5 +182,21 @@ class Enc1NARDec2(nn.Module):
             return seqs
 
         seqs = merge(morphs, tags, lengths)
+
+        if self.dict is not None:
+            new_seqs = []
+            srcs = ["".join(src) for src in batch["src"]]
+            for src, seq in zip(srcs, seqs):
+                eojs = []
+                src_eojs = src.split(" ")
+                seq_eojs = seq.split(" ")
+                for src_eoj, seq_eoj in zip(src_eojs, seq_eojs):
+                    answer = self.dict.get(src_eoj, None)
+                    if answer is None:
+                        eojs.append(seq_eoj)
+                    else:
+                        eojs.append(answer)
+                new_seqs.append(" ".join(eojs))
+            return new_seqs
 
         return seqs

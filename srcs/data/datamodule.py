@@ -42,10 +42,7 @@ class DataModule(L.LightningDataModule):
         self.tokenizers = tokenizers
 
     def setup(self, stage) -> None:
-        dir = os.path.join(
-            os.getcwd(), "data", self.args.data, self.args.architecture, "cache"
-        )
-        # remove_columns = ["src", "morph_tgt", "tag_tgt"]
+        dir = os.path.join(os.getcwd(), "data", self.args.data, "cache")
         remove_columns = []
 
         def load_and_preprocess_data(split_name, remove_columns, tokenizers):

@@ -13,10 +13,6 @@ O(1)의 속도로 형태소 분석 결과를 생성합니다.
 
 - [**비자동회귀 다중 디코더 기반 한국어 형태소 분석**](https://koreascience.kr/article/CFKO202226455347146.page)
 
-2022년부터 이런 연구를 했다니! 
-
-취업은 글러 먹었네요~
-
 ---
 
 # 사용 방법
@@ -71,7 +67,6 @@ bash scripts/infer.sh
 박천음 교수님의 논문을 참고 바랍니다.
 - [**Robust Multi-task Learning-based Korean POS Tagging to Overcome Word Spacing Errors**](https://dl.acm.org/doi/10.1145/3591206)
 
-저는 부족한게 많아서 좋은 학회/저널에 논문을 제출하지 못했네요.
 
 ---
 

@@ -68,13 +68,3 @@ bash scripts/infer.sh
 - [**Robust Multi-task Learning-based Korean POS Tagging to Overcome Word Spacing Errors**](https://dl.acm.org/doi/10.1145/3591206)
 
 
----
-
-# ps
-
-솔직히, 형태소 분석기가 연구나 산업에 어떤 도움을 주는지 모르겠습니다.
-
-여러분이 피드백 주시면 알게 될 것 같습니다!
-
-e-mail: gamy0315@daum.net
-

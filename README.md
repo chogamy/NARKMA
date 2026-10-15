@@ -32,6 +32,8 @@ It worked on (nvcc --version : 11.8) and (CUDA version : 12.2)
 bash scripts/train.sh
 ```
 
+* data: https://drive.google.com/file/d/16nAi6dXw0ztxQ7SIF6q5Q439PwAcx0SZ/view?usp=drive_link
+
 
 ## Inference
 ```

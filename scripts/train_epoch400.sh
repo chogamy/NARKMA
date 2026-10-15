@@ -1,0 +1,1 @@
+python main.py --mode fit --architecture Enc1NARDec2 --data sejong --trainer_args args/trainer/epoch400.yaml

@@ -1,0 +1,1 @@
+python main.py --mode test --architecture Enc1NARDec2 --data sejong --dict true --trainer_args args/trainer/epoch400.yaml

@@ -54,8 +54,10 @@ def get_callbacks(args):
 
 
 def get_trainer(args):
-    args.trainer_args["callbacks"] = get_callbacks(args)
-    args.trainer_args["strategy"] = DDPStrategy(find_unused_parameters=True)
-    trainer = Trainer(**args.trainer_args)
+    # copy so that callbacks/strategy don't leak into the saved hparams (unpicklable)
+    trainer_args = dict(args.trainer_args)
+    trainer_args["callbacks"] = get_callbacks(args)
+    trainer_args["strategy"] = DDPStrategy(find_unused_parameters=True)
+    trainer = Trainer(**trainer_args)
 
     return trainer
